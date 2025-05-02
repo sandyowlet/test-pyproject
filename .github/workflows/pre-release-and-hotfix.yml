@@ -1,0 +1,68 @@
+name: Pre-release and Hotfix
+
+on:
+  push:
+    branches:
+      - "release/**"
+      - "hotfix/**"
+
+jobs:
+  bump-version-and-changelog:
+    name: Bump version and generate changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Skip this job if the commit message starts with 'bump:' as it's already a bump commit
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+        with:
+          uv-version: "0.6.16"
+
+      - name: Bump version and generate changelog
+        id: bump
+        uses: commitizen-tools/commitizen-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          changelog_increment_filename: CHANGELOG.md
+          commit: true
+          push: true
+        continue-on-error: true  # Allow the workflow to continue even if there's nothing to bump
+      # If bump failed, print a message
+      - name: Print bump failure message
+        if: ${{ failure() && steps.bump.outcome == 'failure' }}
+        run: echo "Nothing to bump, skipping"
+
+
+  release-draft:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Build package
+        run: uv build
+
+      - name: Create release draft
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body_path: CHANGELOG.md
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          draft: true
