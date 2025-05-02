@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      new_sha: ${{ steps.get_new_sha.outputs.sha }}
     # Skip this job if the commit message starts with 'bump:' as it's already a bump commit
     if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
     steps:
@@ -35,7 +37,6 @@ jobs:
           commit: true
           push: true
         continue-on-error: true
-
       - name: Print bump failure message
         if: ${{ failure() && steps.bump.outcome == 'failure' }}
         run: echo "Nothing to bump, skipping"
@@ -47,14 +48,23 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
 
+      - name: Get the new commit SHA
+        if: ${{ steps.bump.outcome == 'success' }}
+        id: get-sha
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
   release-draft:
     runs-on: ubuntu-latest
-    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+    needs: bump-version-and-changelog
     permissions:
       contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.bump-version-and-changelog.outputs.new_sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-python-env
@@ -72,3 +82,4 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
           draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
