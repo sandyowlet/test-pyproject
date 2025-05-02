@@ -34,12 +34,18 @@ jobs:
           changelog_increment_filename: CHANGELOG.md
           commit: true
           push: true
-        continue-on-error: true  # Allow the workflow to continue even if there's nothing to bump
-      # If bump failed, print a message
+        continue-on-error: true
+
       - name: Print bump failure message
         if: ${{ failure() && steps.bump.outcome == 'failure' }}
         run: echo "Nothing to bump, skipping"
 
+      - name: push bump commit
+        if: ${{ steps.bump.outcome == 'success' }}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
 
   release-draft:
     runs-on: ubuntu-latest
