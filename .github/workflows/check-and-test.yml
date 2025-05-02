@@ -5,16 +5,17 @@ on:
     branches:
       - main
       - develop
-      - 'release/**'
-      - 'hotfix/**'
+      - "release/**"
+      - "hotfix/**"
   pull_request:
     branches:
       - develop
-      - 'release/**'
-      - 'hotfix/**'
+      - "release/**"
+      - "hotfix/**"
 
 jobs:
   code-quality-checks:
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -36,18 +37,15 @@ jobs:
       - name: Check for type errors
         run: uv run mypy
 
-
       - name: Check for obsolete dependencies
         run: uv run deptry .
 
-
   tests-on-multiple-python-versions:
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [
-          "3.10", "3.11", "3.12", "3.13"
-        ]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
       fail-fast: false
     steps:
       - name: Checkout
@@ -61,8 +59,8 @@ jobs:
       - name: Run tests
         run: uv run pytest tests
 
-
   check-docs:
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out
