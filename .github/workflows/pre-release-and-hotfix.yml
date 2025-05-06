@@ -22,6 +22,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-python-env
@@ -92,6 +93,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ steps.get_new_sha.outputs.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
       - name: Setup Python environment
         uses: ./.github/actions/setup-python-env
